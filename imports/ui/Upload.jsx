@@ -2,8 +2,19 @@ import React, { useState, useEffect } from 'react'
 import { Page, Toolbar, Icon, Card, ToolbarButton, Input, Button, ProgressCircular, Dialog } from 'react-onsenui'
 import Resizer from 'react-image-file-resizer';
 import { gzip, ungzip } from 'node-gzip';
+import { connect } from "react-redux";
 
-export default function Upload({ showMenu }) {
+const mapStateToProps = (state) => {
+    return {
+      client: state.webtorrentreducer.client,
+    };
+  }
+
+export default connect(mapStateToProps)(
+    Upload
+);
+
+function Upload({ showMenu, client }) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [uploading, setUploading] = useState(false);
@@ -30,7 +41,6 @@ export default function Upload({ showMenu }) {
     }
 
     function seed() {
-        var client = new window.WebTorrent()
         client.seed(file, function (torrent, err) {
             if (err) {
                 console.log(err)

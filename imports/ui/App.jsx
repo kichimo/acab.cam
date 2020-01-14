@@ -1,11 +1,11 @@
 import React from 'react'
-import MainPage from '../page/MainPage'
+import Init from '../ui/Init'
 
 export default class App extends React.Component {
 
     render() {
       return (
-        <MainPage />
+        <Init/>
       );
     }
   }

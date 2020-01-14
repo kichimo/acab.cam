@@ -1,12 +1,11 @@
-import React from 'react'
+import React, {useState} from 'react'
 import { Page, Toolbar, Icon, ToolbarButton, List, ListHeader} from 'react-onsenui'
 import { withTracker } from 'meteor/react-meteor-data';
 import { Vids } from '../api/videos'
 import  SeedingListItem  from '../component/SeedingListItem'
+import { connect } from "react-redux";
 
-function Seeding({ showMenu, vids }) {
-    // var client = new window.WebTorrent()
-
+function Seeding({ showMenu, vids, client }) {
     return (
         <Page renderToolbar={() =>
             <Toolbar>
@@ -29,7 +28,7 @@ function Seeding({ showMenu, vids }) {
                 dataSource={vids}
                 // renderHeader={renderHeader}
                 renderRow={(vid, idx) => (
-                    <SeedingListItem vid={vid} key={idx}/>
+                    <SeedingListItem vid={vid} key={idx} client={client}/>
                 )}
             // renderFooter={this.renderFooter}
             />
@@ -37,9 +36,20 @@ function Seeding({ showMenu, vids }) {
     )
 }
 
-export default withTracker(() => {
-    Meteor.subscribe('vids');
+
+
+const mapStateToProps = (state) => {
     return {
-        vids: Vids.find({}).fetch(),
+      client: state.webtorrentreducer.client,
     };
-})(Seeding);
+  }
+
+
+export default connect(mapStateToProps)(
+    withTracker(() => {
+        Meteor.subscribe('vids');
+        return {
+            vids: Vids.find({}).fetch(),
+        };
+    })(Seeding)
+);
