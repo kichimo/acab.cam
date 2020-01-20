@@ -5,7 +5,7 @@ import { Vids } from '../api/videos'
 import  SeedingListItem  from '../component/SeedingListItem'
 import { connect } from "react-redux";
 
-function Seeding({ showMenu, vids, client }) {
+function Seeding({ showMenu, vids }) {
     return (
         <Page renderToolbar={() =>
             <Toolbar>
@@ -28,7 +28,7 @@ function Seeding({ showMenu, vids, client }) {
                 dataSource={vids}
                 // renderHeader={renderHeader}
                 renderRow={(vid, idx) => (
-                    <SeedingListItem vid={vid} key={idx} client={client}/>
+                    <SeedingListItem vid={vid} key={idx}/>
                 )}
             // renderFooter={this.renderFooter}
             />

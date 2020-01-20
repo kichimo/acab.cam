@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Page, Toolbar, Icon, ProgressCircular, ToolbarButton, Card, ListHeader, ListTitle, ProgressBar } from 'react-onsenui'
 import { connect } from "react-redux";
-import { addVideo } from '../redux/action'
 import render from 'render-media'
 import parseTorrent from 'parse-torrent'
 
-function Video({ showMenu, client, videos, addVideo }) {
+function Video({ showMenu, client }) {
     const [vid, setVid] = useState(null)
     const [progress, setProgress] = useState(0)
 
@@ -19,23 +18,41 @@ function Video({ showMenu, client, videos, addVideo }) {
             }
             setVid(result)
 
-        });
+        }); 
+        return function cleanup(){
+
+        }
     }, [])
 
     useEffect(() => {
+        let mounted = true
         if (vid == null) {
             return
         }
-        // const urlParams = new URLSearchParams(window.location.search);
-        // const id = urlParams.get('id')
+
         torrentId = vid.magnetUri
-        infoHash =  parseTorrent(torrentId).infoHash
-        if (videos[infoHash]) {
-            // console.log(videos[infoHash].file)
-            setProgress(100)
-            render.render(videos[infoHash].file, "#player")
+
+        torrent = client.get(torrentId)
+
+        if(torrent != null){
+            torrent.on('done', () => {
+
+            })
+
+            torrent.on('download', function (bytes) {
+                // console.log(torrent.progress)
+                if (mounted){
+                setProgress(torrent.progress * 100)
+                }
+            })
+            torrent.files.forEach(function (file) {
+                setProgress(torrent.progress * 100)
+                render.render(file, "#player")
+            })
             return
         }
+
+
         client.on('error', err => {
             console.log('[+] Webtorrent error: ' + err.message);
         });
@@ -43,14 +60,14 @@ function Video({ showMenu, client, videos, addVideo }) {
         client.add(torrentId, (torrent) => {
             console.log('Client is downloading:', torrent.infoHash)
             torrent.on('done', () => {
-                torrent.files.forEach((file) => {
-                    addVideo(torrent.infoHash, file)
-                })
+
             })
 
             torrent.on('download', function (bytes) {
                 // console.log(torrent.progress)
-                setProgress(torrent.progress * 100)
+                if (mounted){
+                    setProgress(torrent.progress * 100)
+                    }
             })
             torrent.files.forEach(function (file) {
                 render.render(file, "#player")
@@ -59,6 +76,7 @@ function Video({ showMenu, client, videos, addVideo }) {
 
         return function cleanup() {
             // client.remove(torrentId)
+            mounted = false
         };
     }, [vid]);
 
@@ -128,12 +146,11 @@ function Video({ showMenu, client, videos, addVideo }) {
 
 const mapStateToProps = (state) => {
     return {
-        client: state.webtorrentreducer.client,
-        videos: state.webtorrentreducer.videos
+        client: state.webtorrentreducer.client
     };
 }
 
 
-export default connect(mapStateToProps, { addVideo })(
+export default connect(mapStateToProps)(
     Video
 );

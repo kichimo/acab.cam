@@ -11,6 +11,7 @@
     "@babel/runtime": "^7.7.6",
     "history": "^4.10.1",
     "meteor-node-stubs": "^1.0.0",
+    "mp4-convert": "^1.0.2",
     "node-gzip": "^1.1.2",
     "onsenui": "^2.10.10",
     "parse-torrent": "^7.0.1",
