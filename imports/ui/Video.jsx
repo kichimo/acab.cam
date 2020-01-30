@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { Page, Toolbar, Icon, ProgressCircular, ToolbarButton, Card, ListHeader, ListTitle, ProgressBar } from 'react-onsenui'
 import { connect } from "react-redux";
 import render from 'render-media'
-import parseTorrent from 'parse-torrent'
 
 function Video({ showMenu, client }) {
     const [vid, setVid] = useState(null)

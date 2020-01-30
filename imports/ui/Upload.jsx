@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { Page, Toolbar, Icon, Card, ToolbarButton, Input, Button, ProgressCircular, Dialog } from 'react-onsenui'
+import { Page, Toolbar, Icon, Card, ToolbarButton, Input, Button, ProgressBar, Dialog } from 'react-onsenui'
 import Resizer from 'react-image-file-resizer';
 import { gzip, ungzip } from 'node-gzip';
 import { connect } from "react-redux";
+import ffmpeg from "ffmpeg.js/ffmpeg-mp4.js";
+import BMF from 'browser-md5-file';
+import render from 'render-media'
 
 const mapStateToProps = (state) => {
     return {
-      client: state.webtorrentreducer.client,
+        client: state.webtorrentreducer.client,
     };
-  }
+}
 
 export default connect(mapStateToProps)(
     Upload
@@ -21,7 +24,7 @@ function Upload({ showMenu, client }) {
     const [uploaded, setUploaded] = useState(false);
     const [fileSelector, setFileSelector] = useState()
     const [previewImg, setPreviewImg] = useState()
-    const [file, setFile] = useState()
+    const [file, setFile] = useState(null)
     const [openDialog, setOpenDialog] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
     useEffect(() => {
@@ -40,7 +43,30 @@ function Upload({ showMenu, client }) {
         fileSelector.click();
     }
 
+    function checkRequirement() {
+        if (file == null) {
+            // console.log("no file is selected")
+            setErrorMessage("no file is selected")
+            setOpenDialog(true)
+            return
+        }
+        if (title == "") {
+            // console.log("no title")
+            setErrorMessage("Title cannot be empty")
+            setOpenDialog(true)
+            return
+        }
+        if (description == "") {
+            // console.log("no description")
+            setErrorMessage("Description cannot be empty")
+            setOpenDialog(true)
+            return
+        }
+        setUploading(true)
+    }
+
     function seed() {
+        checkRequirement()
         client.seed(file, function (torrent, err) {
             if (err) {
                 console.log(err)
@@ -58,6 +84,53 @@ function Upload({ showMenu, client }) {
             });
         })
     }
+
+    function transcodeAndSeed() {
+        checkRequirement()
+        const bmf = new BMF();
+        file.arrayBuffer().then((buffer) => {
+            var fileData = new Uint8Array(buffer);
+            console.log(file.name)
+
+            // Encode test video to VP8.
+            var result = ffmpeg({
+                MEMFS: [{ name: file.name, data: fileData }],
+                arguments: ["-i", file.name, "-c", "copy", "out.mp4"],
+                // Ignore stdin read requests.
+                stdin: function () { },
+            });
+            var out = result.MEMFS[0];
+            var blob = new Blob([out.data],{"type" : "video/mp4"});
+            bmf.md5(
+                blob,
+                (err, md5) => {
+                    if (err) {
+                        console.log('err:', err);
+                        return
+                    }
+                    var mp4file = new File([blob], md5 + ".mp4");
+                    client.seed(mp4file, function (torrent, err) {
+                        if (err) {
+                            console.log(err)
+                        }
+                        console.log('Client is seeding:', torrent.magnetURI)
+                        Meteor.call('vids.insert', title, description, torrent.magnetURI, previewImg, function (err, result) {
+                            if (err) {
+                                console.log(err)
+                                setUploading(false)
+                                return
+                            }
+                            console.log(result)
+                            setUploading(false)
+                            setUploaded(true)
+                        });
+                    })
+                })
+        })
+
+
+    }
+
     //return a promise that resolves with a File instance
     function urltoFile(url, filename, mimeType) {
         mimeType = mimeType || (url.match(/^data:([^;]+);/) || '')[1];
@@ -152,7 +225,7 @@ function Upload({ showMenu, client }) {
             </Toolbar>}
         >
             <Card>
-                Your video is being seeded now! If you want to keep the video available, dont close the browser and keep seeding it.
+                Your video is being seeded now! If you want to keep the video available, dont close this tab to keep seeding it.
             </Card>
         </Page>
     }
@@ -174,7 +247,8 @@ function Upload({ showMenu, client }) {
             </Toolbar>}
         >
             <Card>
-                <ProgressCircular indeterminate />
+                <ProgressBar indeterminate />
+                We are processing your video, please wait and dont leave this page.
             </Card>
         </Page>
     }
@@ -219,48 +293,39 @@ function Upload({ showMenu, client }) {
                 >
                     Select file
                 </Button>
-                <Button modifier="large--cta" onClick={() => {
-                    if (file == null) {
-                        // console.log("no file is selected")
-                        setErrorMessage("no file is selected")
-                        setOpenDialog(true)
-                        return
-                    }
-                    if (title == "") {
-                        // console.log("no title")
-                        setErrorMessage("Title cannot be empty")
-                        setOpenDialog(true)
-                        return
-                    }
-                    if (description == "") {
-                        // console.log("no description")
-                        setErrorMessage("Description cannot be empty")
-                        setOpenDialog(true)
-                        return
-                    }
-                    setUploading(true)
-                    seed()
-                }}>
+                <Button modifier="large--cta"
+                    style={{ marginBottom: 30 }}
+                    onClick={() => {
+                        // seed()
+                        transcodeAndSeed()
+                    }}>
                     <Icon icon="upload"></Icon>{" Upload"}
                 </Button>
+
+                {/* <Button modifier="large--cta" onClick={() => {
+
+                    test()
+                }}>
+                    <Icon icon="upload"></Icon>{" Test"}
+                </Button> */}
             </Card>
-            <Dialog onCancel={()=>{setOpenDialog(false)}}
+            <Dialog onCancel={() => { setOpenDialog(false) }}
                 isOpen={openDialog}
-                 cancelable>
+                cancelable>
                 <Page>
-                    <Card style={{height:"80%", textAlign: "center"}}>
-                        <div style={{marginBottom: 5}}>
-                        {errorMessage}
+                    <Card style={{ height: "80%", textAlign: "center" }}>
+                        <div style={{ marginBottom: 5 }}>
+                            {errorMessage}
                         </div>
-                    <Button style={{
-                        display: "block",
-                        margin: "auto",
-                        textAlign: "center",
+                        <Button style={{
+                            display: "block",
+                            margin: "auto",
+                            textAlign: "center",
                         }}
-                        ripple
-                        modifier="quiet"
-                        onClick={()=>{setOpenDialog(false)}}>
-                        Cancel
+                            ripple
+                            modifier="quiet"
+                            onClick={() => { setOpenDialog(false) }}>
+                            Cancel
                     </Button>
                     </Card>
                 </Page>
