@@ -1,5 +1,6 @@
 // import { Meteor } from 'meteor/meteor';
 import '../imports/api/videos';
+import '../imports/api/comments';
 // // function insertLink(title, url) {
 // //   Links.insert({ title, url, createdAt: new Date() });
 // // }

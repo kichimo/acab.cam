@@ -5,7 +5,6 @@ import { gzip, ungzip } from 'node-gzip';
 import { connect } from "react-redux";
 import ffmpeg from "ffmpeg.js/ffmpeg-mp4.js";
 import BMF from 'browser-md5-file';
-import render from 'render-media'
 
 const mapStateToProps = (state) => {
     return {
@@ -27,6 +26,7 @@ function Upload({ showMenu, client }) {
     const [file, setFile] = useState(null)
     const [openDialog, setOpenDialog] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+    
     useEffect(() => {
         setFileSelector(buildFileSelector())
     }, [])
@@ -62,73 +62,82 @@ function Upload({ showMenu, client }) {
             setOpenDialog(true)
             return
         }
-        setUploading(true)
     }
 
-    function seed() {
-        checkRequirement()
-        client.seed(file, function (torrent, err) {
-            if (err) {
-                console.log(err)
-            }
-            console.log('Client is seeding:', torrent.magnetURI)
-            Meteor.call('vids.insert', title, description, torrent.magnetURI, previewImg, function (err, result) {
-                if (err) {
-                    console.log(err)
-                    setUploading(false)
-                    return
-                }
-                console.log(result)
-                setUploading(false)
-                setUploaded(true)
-            });
-        })
+    function uploadFailed(){
+        setUploading(false)
+        setUploaded(false)
+        setErrorMessage("Process video failed.")
+        setOpenDialog(true)
     }
+
+    // function seed() {
+    //     checkRequirement()
+    //     client.seed(file, function (torrent, err) {
+    //         if (err) {
+    //             console.log(err)
+    //         }
+    //         console.log('Client is seeding:', torrent.magnetURI)
+    //         Meteor.call('vids.insert', title, description, torrent.magnetURI, previewImg, function (err, result) {
+    //             if (err) {
+    //                 console.log(err)
+    //                 setUploading(false)
+    //                 return
+    //             }
+    //             console.log(result)
+    //             setUploading(false)
+    //             setUploaded(true)
+    //         });
+    //     })
+    // }
 
     function transcodeAndSeed() {
         checkRequirement()
+        setUploading(true)
         const bmf = new BMF();
         file.arrayBuffer().then((buffer) => {
             var fileData = new Uint8Array(buffer);
-            console.log(file.name)
 
             // Encode test video to VP8.
             var result = ffmpeg({
                 MEMFS: [{ name: file.name, data: fileData }],
-                arguments: ["-i", file.name, "-c", "copy", "out.mp4"],
+                arguments: ["-i", file.name,"-c","copy", "out.mp4"],
                 // Ignore stdin read requests.
                 stdin: function () { },
             });
+
             var out = result.MEMFS[0];
-            var blob = new Blob([out.data],{"type" : "video/mp4"});
+            var blob = new Blob([out.data], { "type": "video/mp4" });
             bmf.md5(
                 blob,
                 (err, md5) => {
                     if (err) {
                         console.log('err:', err);
+                        uploadFailed()
                         return
                     }
                     var mp4file = new File([blob], md5 + ".mp4");
                     client.seed(mp4file, function (torrent, err) {
                         if (err) {
                             console.log(err)
+                            uploadFailed()
+                            return
                         }
-                        console.log('Client is seeding:', torrent.magnetURI)
+                        // console.log('Client is seeding:', torrent.magnetURI)
                         Meteor.call('vids.insert', title, description, torrent.magnetURI, previewImg, function (err, result) {
                             if (err) {
                                 console.log(err)
-                                setUploading(false)
+                                uploadFailed()
                                 return
                             }
-                            console.log(result)
-                            setUploading(false)
-                            setUploaded(true)
+                            if (result) {
+                                setUploading(false)
+                                setUploaded(true)
+                            }
                         });
                     })
                 })
         })
-
-
     }
 
     //return a promise that resolves with a File instance
@@ -207,6 +216,31 @@ function Upload({ showMenu, client }) {
         }
     }
 
+
+    function renderDialog(){
+        return(<Dialog onCancel={() => { setOpenDialog(false) }}
+        isOpen={openDialog}
+        cancelable>
+        <Page>
+            <Card style={{ height: "80%", textAlign: "center" }}>
+                <div style={{ marginBottom: 5 }}>
+                    {errorMessage}
+                </div>
+                <Button style={{
+                    display: "block",
+                    margin: "auto",
+                    textAlign: "center",
+                }}
+                    ripple
+                    modifier="quiet"
+                    onClick={() => { setOpenDialog(false) }}>
+                    Cancel
+            </Button>
+            </Card>
+        </Page>
+    </Dialog>)
+    }
+
     if (uploaded) {
         return <Page renderToolbar={() =>
             <Toolbar>
@@ -227,6 +261,7 @@ function Upload({ showMenu, client }) {
             <Card>
                 Your video is being seeded now! If you want to keep the video available, dont close this tab to keep seeding it.
             </Card>
+            {renderDialog()}
         </Page>
     }
     if (uploading) {
@@ -250,6 +285,7 @@ function Upload({ showMenu, client }) {
                 <ProgressBar indeterminate />
                 We are processing your video, please wait and dont leave this page.
             </Card>
+            {renderDialog()}
         </Page>
     }
 
@@ -309,27 +345,7 @@ function Upload({ showMenu, client }) {
                     <Icon icon="upload"></Icon>{" Test"}
                 </Button> */}
             </Card>
-            <Dialog onCancel={() => { setOpenDialog(false) }}
-                isOpen={openDialog}
-                cancelable>
-                <Page>
-                    <Card style={{ height: "80%", textAlign: "center" }}>
-                        <div style={{ marginBottom: 5 }}>
-                            {errorMessage}
-                        </div>
-                        <Button style={{
-                            display: "block",
-                            margin: "auto",
-                            textAlign: "center",
-                        }}
-                            ripple
-                            modifier="quiet"
-                            onClick={() => { setOpenDialog(false) }}>
-                            Cancel
-                    </Button>
-                    </Card>
-                </Page>
-            </Dialog>
+            {renderDialog()}
         </Page>
     )
 }

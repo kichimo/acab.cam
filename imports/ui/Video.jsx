@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Page, Toolbar, Icon, ProgressCircular, ToolbarButton, Card, ListHeader, ListTitle, ProgressBar } from 'react-onsenui'
 import { connect } from "react-redux";
 import render from 'render-media'
+import CommentList from '../component/CommentList'
+import CommentBox from '../component/CommentBox'
 
 function Video({ showMenu, client }) {
     const [vid, setVid] = useState(null)
@@ -139,6 +141,8 @@ function Video({ showMenu, client }) {
                 <ListHeader modifier="ios">{vid.title}</ListHeader>
                 <ListTitle modifier="ios">{vid.description}</ListTitle>
             </Card>
+            <CommentBox id={vid._id} />
+            <CommentList id={vid._id}/>
         </Page>
     )
 }
