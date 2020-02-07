@@ -1,12 +1,12 @@
-import React, { useState }from 'react'
-import { Card, Input, Button } from 'react-onsenui'
+import React, { useState } from 'react'
+import { Card, Input, Button, ListItem } from 'react-onsenui'
 
 export default function CommentBox({ id }) {
     const [author, setAuthor] = useState("");
     const [comment, setComment] = useState("");
 
-    function SubmitComment(){
-        if(author == "" || comment== ""){
+    function SubmitComment() {
+        if (author == "" || comment == "") {
             return
         }
         Meteor.call('comments.insert', id, comment, author, function (err, result) {
@@ -16,29 +16,41 @@ export default function CommentBox({ id }) {
             }
             setAuthor("")
             setComment("")
-        }); 
+        });
+    }
+
+    function Cancel() {
+        setAuthor("")
+        setComment("")
     }
 
     return (
         <Card>
             <Input
-            style={{paddingBottom:10}}
-                float
+                style={{ paddingBottom: 10 }}
+                // float
                 value={author}
                 onChange={(event) => { setAuthor(event.target.value) }}
                 modifier='material'
                 placeholder='Name' />
-                <br/>
+            <br />
             <Input
-            style={{width:'100%'}}
-                float
+                style={{ width: '100%', paddingBottom: 5 }}
+                // float
                 value={comment}
-                onChange={(event) => { setComment(event.target.value)}}
+                onChange={(event) => { setComment(event.target.value) }}
                 modifier='material'
                 placeholder='Comment' />
-            <Button onClick={()=>{SubmitComment()}}>
-               Send
+            <ListItem>
+                <div className="right">
+                    <Button modifier="quiet" onClick={() => { Cancel() }}>
+                        Cancel
             </Button>
+                    <Button style={{ marginLeft: 20 }} onClick={() => { SubmitComment() }}>
+                        {"  Send  "}
+                    </Button>
+                </div>
+            </ListItem>
         </Card>
     )
 }

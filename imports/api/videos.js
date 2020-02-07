@@ -26,7 +26,11 @@ Meteor.methods({
   'vids.findOne'(id) {
     check(id, String);
     return Vids.findOne({_id: id})
-  }
+  },
+  'vids.find'(search){
+    return Vids.find({ $text: { $search: "test" } }).fetch()
+  },
+
 });
 
 if (Meteor.isServer) {
