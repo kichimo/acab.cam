@@ -1,8 +1,15 @@
 import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
 import { check } from 'meteor/check';
+import { Index, MinimongoEngine } from 'meteor/easy:search'
 
 export const Vids = new Mongo.Collection('videos');
+
+export const VidsIndex = new Index({
+  collection: Vids,
+  fields: ['title', 'description'],
+  engine: new MinimongoEngine(),
+})
 
 Meteor.methods({
   'vids.insert'(title, description, magnetUri, previewImg) {
@@ -28,7 +35,7 @@ Meteor.methods({
     return Vids.findOne({_id: id})
   },
   'vids.find'(search){
-    return Vids.find({ $text: { $search: "test" } }).fetch()
+    return Vids.find().fetch()
   },
 
 });

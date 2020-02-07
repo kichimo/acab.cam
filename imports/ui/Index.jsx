@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react'
-import { Page, Toolbar, Icon, ToolbarButton, Button , Row} from 'react-onsenui'
+import { Page, Toolbar, Icon, ToolbarButton, SearchInput, Card, Row } from 'react-onsenui'
 import VidCard from '../component/VideoCard'
 import { withTracker } from 'meteor/react-meteor-data';
- 
-import { Vids } from '../api/videos';
+import { Tracker } from 'meteor/tracker'
+import { Vids, VidsIndex } from '../api/videos';
 
-function Index({ showMenu, vids }) {
+function Index({ showMenu }) {
+    const [vids, setVids] = useState([])
+    const [search, setSearch] = useState("")
     useEffect(() => {
-        // Update the document title using the browser API
-        console.log("test")
-        Meteor.call('vids.find', function (err, result) {
-            if (err) {
-                console.log(err)
-                return
-            }
-            console.log(result)
-        });
-      },[]);
 
-    function renderVids(){
+        Tracker.autorun(function () {
+            if(search == ""){
+                setVids(Vids.find().fetch())
+            }
+            else{
+                let cursor = VidsIndex.search(search)
+                setVids(cursor.fetch())
+            }
+        })
+    }, [search]);
+
+    function renderVids() {
         return vids.map((vid) => (
-            <VidCard key={vid._id} vid={vid}/>
+            <VidCard key={vid._id} vid={vid} />
         )
         )
     }
@@ -42,6 +45,14 @@ function Index({ showMenu, vids }) {
                 </div>
             </Toolbar>}
         >
+        <Card>
+            <SearchInput
+                style={{width:"100%"}}
+                value={search}
+                onChange={(event) => { setSearch(event.target.value) }}
+                modifier='material'
+                placeholder='Search' />
+        </Card>
             <Row>
                 {renderVids()}
             </Row>
